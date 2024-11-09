@@ -18,6 +18,7 @@ class TaskCreateRequest(BaseModel):
         for key, val in share_with.items():
             if key != "id":
                 raise ValueError("Wrong format, must be id")
+        return share_with
     class Config:
         extra = 'forbid'
     
@@ -30,3 +31,4 @@ class TaskUpdateRequest(BaseModel):
     every_one : Optional[bool] = None
     class Config:
         extra = 'forbid'
+

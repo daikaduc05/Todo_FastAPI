@@ -4,6 +4,7 @@ import jwt
 import os
 from dotenv import load_dotenv
 from bson.objectid import ObjectId
+from bson.errors import InvalidId
 from fastapi import Depends,status,HTTPException,Header
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
@@ -52,9 +53,13 @@ class RoleBaseAccessControl:
     def __init__(self,allowed_role,action):
         self.allowed_role = allowed_role
         self.action = action
-    async def __call__(self,user : dict = Depends(get_user),task_id : str = Path()):
-        task = await retrieve_filter(tasks,{"_id" : ObjectId(task_id)})
-      
+    async def __call__(self,user = Depends(get_user),task_id : str = Path()):
+        try:
+            task = await retrieve_filter(tasks,{"_id" : ObjectId(task_id)})
+        except InvalidId:
+            return JSONResponse(content={
+                "error" : "id is not true form objectid"
+            },status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)
         if not isinstance(user,dict):
             return user
         data = {
