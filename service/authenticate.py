@@ -70,18 +70,15 @@ class RoleBaseAccessControl:
         if user["role"] in self.allowed_role or user["user_id"] == task["assigned_to"]:
             return data
         else:
-        
+            
             if self.action == "retrieve":
-                if task["every_one"] == True:
+                if task["every_one"] == "True":
                     return data
-                
-                for key,value in task["share_with"].items():
-                    #print(value)
+                for value in task["share_with"]:
                     if value == user["user_id"]:
                          return data
-            # #     if user["user_id"] in task["share_with"].values():
-            # #         return data
-            return JSONResponse(
+            
+        return JSONResponse(
                 content={
                     "error" : "not permission"
                 },

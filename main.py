@@ -15,7 +15,7 @@ async def custom_validation_exception_handler(request: Request, exc: RequestVali
         })
     return JSONResponse(
         status_code=422,
-        content={"errors": formatted_errors}
+        content=formatted_errors
     )
 app.include_router(user_router,prefix="/user",tags=["user"])
 app.include_router(task_router,prefix="/task",tags=["task"])
