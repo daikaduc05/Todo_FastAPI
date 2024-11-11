@@ -13,7 +13,6 @@ class TaskCreateRequest(BaseModel):
     status : Status = Field(...)
     share_with : Optional[list] = None
     every_one : bool = Field(...)
- 
     class Config:
         extra = 'forbid'
     

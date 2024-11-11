@@ -1,4 +1,4 @@
-from fastapi import APIRouter,Body,HTTPException,status
+from fastapi import APIRouter,Body,HTTPException,status,Depends
 from fastapi.encoders import jsonable_encoder
 from service.authenticate import authenticated_login
 from fastapi.responses import JSONResponse
@@ -6,10 +6,14 @@ from schema.users import(
     RegisterRequest,
     LoginRequest
 )
+from service.authenticate import(
+    RoleBaseAccessControlWithUser
+)
 from db.database import(
     users,
     create,
-    retrieve_filter
+    retrieve_filter,
+    update
 )
 from service.authenticate import(
     hash_password
@@ -49,4 +53,16 @@ async def login(login_data : LoginRequest = Body(...)):
             )
     else :
         raise HTTPException(status.HTTP_401_UNAUTHORIZED,"Invalid username/password")
+    
+@router.patch("/up_level/{another_user}")
+async def up_level(permission : dict = Depends(RoleBaseAccessControlWithUser({"admin"},"up_level"))):
+    if not isinstance(permission,dict):
+        return permission
+    print(permission)
+    data = {
+        "role" : "admin"
+    }
+    user = await update(users,permission["_id"],data)
+    return user
+    
 
