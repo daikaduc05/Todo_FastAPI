@@ -1,4 +1,4 @@
-from pydantic import  Field,field_validator,BaseModel,model_validator
+from pydantic import  Field,field_validator,BaseModel, EmailStr
 from bson import ObjectId
 import re
 from .roles import RoleName
@@ -7,6 +7,7 @@ from service.validate import hash_password
 
 class UserBase(CustomBase):
     user_id : str = Field(None,alias="_id")
+    email : EmailStr = Field(None)
     username : str = Field(...,min_length=3,max_length=30)
     password : bytes = Field(...)
     create_id : str = Field(None)
@@ -21,9 +22,12 @@ class UserBase(CustomBase):
 class UserResponse(CustomBase):
     user_id : str = Field(None,alias="_id")
     username : str = Field(...,min_length=3,max_length=30)
+    email : EmailStr = Field(None)
     create_id : str = Field(None)
     class Config:
         alias_generator = lambda field: field if field != "user_id" else "_id"
+
+
 
 class LoginRequest(BaseModel):
     username : str = Field(...,min_length=3,max_length=30)
@@ -35,8 +39,14 @@ class LoginRequest(BaseModel):
                 "password" : "121Ad@fa",
             }
         }
+
+class ValidateRequest(BaseModel):
+    email : EmailStr = Field(...)
+    otp : str = Field(...)
+
 class UserRequest(BaseModel):
     username : str = Field(...,min_length=3,max_length=30)
+    email : str = Field(...,min_length=3,max_length=30)
     password : bytes = Field(...,min_length=8,max_length=100)
     @field_validator("password",mode="before")
     def valid(cls,password):
@@ -47,6 +57,7 @@ class UserRequest(BaseModel):
     class Config:
         json_schema_extra = {
             "example" : {
+                "email" : "tranthigianhan1807@gmail.com",
                 "username" : "daikaduk05",
                 "password" : "121Ad@fa",
             }

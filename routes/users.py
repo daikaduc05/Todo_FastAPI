@@ -8,7 +8,8 @@ from schema.users import(
     UserRequest,
     CreateUserRequest,
     UpdateUserRequest,
-    LoginRequest
+    LoginRequest,
+    ValidateRequest
 )
 from bson import ObjectId
 from bson.errors import InvalidId
@@ -31,6 +32,9 @@ from schema.actions import ActionBase
 from schema.resources import ResourceBase
 from schema.response import Response
 from schema.role_user import RoleUser
+from service.sendemail import yag
+from db.redis_db import r
+import random
 router = APIRouter()
     
 from service.validate import validict
@@ -38,22 +42,49 @@ from service.validate import validict
 @router.post("/register/")
 async def register(user_data : UserRequest = Body(...)) -> UserResponse:
     username = user_data.username
-    role = await retrieve_filter(roles,{"role_name" : "user"})
-    role = RoleBase.model_validate(role[0])
+    email = user_data.email
     if await retrieve_filter(users,{"username":username}):
         raise HTTPException(status.HTTP_400_BAD_REQUEST,"Exist username")
     else:
-        user_data = user_data.model_dump()
-        user = await create(users,user_data)
-        user = UserResponse.model_validate(user)
-        role_user_data = {
-            "role_id" : ObjectId(role.role_id),
-            "user_id" : ObjectId(user.user_id)
-        }
-        await create(roles_users,role_user_data)
-        return user
+        if await retrieve_filter(users,{"email" : email}):
+            raise HTTPException(status.HTTP_400_BAD_REQUEST,"Exist email")
+        else:
+            user_data = user_data.model_dump()
+            user = await create(users,user_data)
+            user = UserResponse.model_validate(user)
+            otp = ''.join([str(random.randint(0, 9)) for _ in range(6)])
+            yag.send(email,"OTP automatic sender",otp)
+            r.append(email,otp)            
+            return user
 
         
+@router.post("/active/")
+async def active(data : ValidateRequest = Body(...)) :
+    email = data.email 
+    otp = data.otp
+    ok = False
+    if r.exists(email):
+        rotp = r.get(email)
+        if rotp == otp :
+           ok = True
+    if ok == False:
+        return JSONResponse(
+            {"detail" : "invalid otp"},
+            status.HTTP_400_BAD_REQUEST
+        )
+    user = await retrieve_filter(users,{"email" : email})
+    role = await retrieve_filter(roles,{"role_name" : "user"})
+    role = RoleBase.model_validate(role[0])
+    user = UserBase.model_validate(user[0])
+    role_user_data = {
+        "role_id" : ObjectId(role.role_id),
+        "user_id" : ObjectId(user.user_id)
+    }
+    await create(roles_users,role_user_data)
+    return JSONResponse(
+       { "detail" : "activated user"},status.HTTP_200_OK
+    )
+
 
 @router.post("/login/")
 async def login(login_data : LoginRequest = Body(...)) -> str:
